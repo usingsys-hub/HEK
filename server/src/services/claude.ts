@@ -17,18 +17,18 @@ const INDICATOR_LABELS: Record<string, string> = {
   corporate_transfer: '법인전입금',
 }
 
-function formatIndicators(indicators: Record<string, number>): string {
-  return Object.entries(indicators)
-    .map(([k, v]) => {
-      const label = INDICATOR_LABELS[k] ?? k
-      if (k.includes('ratio') || k.includes('rate') || k.includes('employment') || k.includes('lecture')) {
-        return `${label}: ${v}%`
-      }
-      if (v >= 100000000) return `${label}: ${(v / 100000000).toFixed(1)}억원`
-      if (v >= 10000) return `${label}: ${Math.round(v / 10000)}만원`
-      return `${label}: ${v}`
-    })
-    .join(', ')
+const PERCENTAGE_INDICATORS = new Set([
+  'fulltime_faculty_ratio',
+  'fulltime_lecture_ratio',
+  'employment_rate',
+  'major_related_employment',
+])
+
+function formatValue(key: string, value: number): string {
+  if (PERCENTAGE_INDICATORS.has(key)) return `${value}%`
+  if (value >= 100000000) return `${(value / 100000000).toFixed(1)}억원`
+  if (value >= 10000) return `${Math.round(value / 10000)}만원`
+  return String(value)
 }
 
 export interface RecommendationItem {
@@ -51,17 +51,7 @@ export async function generateRecommendations(
     const indicatorEntries = Object.entries(c.indicators)
       .map(([k, v]) => {
         const label = INDICATOR_LABELS[k] ?? k
-        let formatted: string
-        if (k.includes('ratio') || k.includes('rate') || k.includes('employment') || k.includes('lecture')) {
-          formatted = `${v}%`
-        } else if (v >= 100000000) {
-          formatted = `${(v / 100000000).toFixed(1)}억원`
-        } else if (v >= 10000) {
-          formatted = `${Math.round(v / 10000)}만원`
-        } else {
-          formatted = String(v)
-        }
-        return `${k}(${label}): ${formatted}`
+        return `${k}(${label}): ${formatValue(k, v)}`
       })
       .join(', ')
     return (
@@ -122,12 +112,7 @@ ${candidateText}
       const value = candidate?.indicators[id]
       const label = INDICATOR_LABELS[id] ?? id
       if (value === undefined) return { name: label, value: '-' }
-      if (id.includes('ratio') || id.includes('rate') || id.includes('employment') || id.includes('lecture')) {
-        return { name: label, value: `${value}%` }
-      }
-      if (value >= 100000000) return { name: label, value: `${(value / 100000000).toFixed(1)}억원` }
-      if (value >= 10000) return { name: label, value: `${Math.round(value / 10000)}만원` }
-      return { name: label, value: String(value) }
+      return { name: label, value: formatValue(id, value) }
     })
 
     return {
