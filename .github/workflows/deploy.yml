@@ -30,6 +30,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_API_URL: https://hek-production-a3f3.up.railway.app
 
       - uses: actions/upload-pages-artifact@v3
         with:
