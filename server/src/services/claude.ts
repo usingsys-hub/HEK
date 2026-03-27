@@ -47,11 +47,29 @@ export async function generateRecommendations(
   viewedIndicators: string[],
   candidates: SearchResult[]
 ): Promise<RecommendationItem[]> {
-  const candidateText = candidates.map((c, i) =>
-    `[후보 ${i + 1}] ${c.university_name} (${c.region}, ${c.univ_type})\n` +
-    `유사도 점수: ${(c.score * 100).toFixed(1)}%\n` +
-    `지표: ${formatIndicators(c.indicators)}`
-  ).join('\n\n')
+  const candidateText = candidates.map((c, i) => {
+    const indicatorEntries = Object.entries(c.indicators)
+      .map(([k, v]) => {
+        const label = INDICATOR_LABELS[k] ?? k
+        let formatted: string
+        if (k.includes('ratio') || k.includes('rate') || k.includes('employment') || k.includes('lecture')) {
+          formatted = `${v}%`
+        } else if (v >= 100000000) {
+          formatted = `${(v / 100000000).toFixed(1)}억원`
+        } else if (v >= 10000) {
+          formatted = `${Math.round(v / 10000)}만원`
+        } else {
+          formatted = String(v)
+        }
+        return `${k}(${label}): ${formatted}`
+      })
+      .join(', ')
+    return (
+      `[후보 ${i + 1}] ${c.university_name} (${c.region}, ${c.univ_type}) [ID: ${c.university_id}]\n` +
+      `유사도 점수: ${(c.score * 100).toFixed(1)}%\n` +
+      `지표: ${indicatorEntries}`
+    )
+  }).join('\n\n')
 
   const prompt = `당신은 대학 입학 상담 전문가입니다. 아래 사용자 탐색 맥락과 후보 대학 목록을 바탕으로 상위 3개 대학을 추천하고 각 이유를 설명하세요.
 
@@ -63,6 +81,10 @@ ${viewedIndicators.length > 0 ? viewedIndicators.join(', ') : '특정 지표 없
 
 ## 후보 대학
 ${candidateText}
+
+## 출력 규칙
+- university_id: 반드시 위 후보 목록의 [ID: UNIV_XXX] 값을 그대로 사용
+- key_indicator_ids: 반드시 위 지표의 키 이름(괄호 앞 영문 이름)을 그대로 사용
 
 ## 출력 형식 (JSON 배열만 출력, 다른 텍스트 없이)
 [
@@ -95,6 +117,7 @@ ${candidateText}
 
   return parsed.map(item => {
     const candidate = candidates.find(c => c.university_id === item.university_id)
+      ?? candidates.find(c => c.university_name === item.university_name)
     const keyIndicators = (item.key_indicator_ids ?? []).slice(0, 3).map(id => {
       const value = candidate?.indicators[id]
       const label = INDICATOR_LABELS[id] ?? id
