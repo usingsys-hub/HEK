@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react'
 import type { SessionData } from '../types/session'
 import type { IntentPattern } from '../types/session'
 import { ALL_SCENARIOS } from '../data/sampleEvents'
 import { eventTracker } from '../core/tracker/eventTracker'
+import { fetchAbStats, type AbStats } from '../api/client'
 
 const PATTERN_COLOR: Record<IntentPattern, string> = {
   UNIV_FIRST: '#1a6fd4',
@@ -39,6 +41,12 @@ interface Props {
 }
 
 export function BehaviorDashboard({ session, intentPattern, onReset }: Props) {
+  const [abStats, setAbStats] = useState<AbStats[]>([])
+
+  useEffect(() => {
+    fetchAbStats().then(setAbStats).catch(() => {})
+  }, [])
+
   function replayScenario(key: keyof typeof ALL_SCENARIOS) {
     const events = ALL_SCENARIOS[key].map(e => ({
       ...e,
@@ -103,6 +111,21 @@ export function BehaviorDashboard({ session, intentPattern, onReset }: Props) {
           ))}
         </div>
       </div>
+
+      {/* A/B 테스트 통계 */}
+      {abStats.length > 0 && (
+        <div style={{ background: '#16213e', padding: '12px', borderRadius: '6px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '8px' }}>A/B 테스트 통계</div>
+          {abStats.map(s => (
+            <div key={s.ab_group} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', borderBottom: '1px solid #2a2a4a' }}>
+              <span style={{ color: s.ab_group === 'B' ? '#a78bfa' : '#38bdf8', fontWeight: 700 }}>
+                그룹 {s.ab_group} {s.ab_group === 'B' ? '(RAG)' : '(규칙)'}
+              </span>
+              <span style={{ color: '#94a3b8' }}>클릭 {s.total_clicks} | 👍 {s.positive} | 👎 {s.negative} | CTR {s.ctr ?? 0}%</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 이벤트 로그 */}
       <div style={{ background: '#16213e', padding: '12px', borderRadius: '6px' }}>

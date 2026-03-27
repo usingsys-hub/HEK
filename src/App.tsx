@@ -6,8 +6,9 @@ import { UniversitySearch } from './components/UniversitySearch'
 import { IndicatorTable } from './components/IndicatorTable'
 import { BehaviorDashboard } from './components/BehaviorDashboard'
 import { SessionContextViewer } from './components/SessionContextViewer'
+import { RecommendationPanel } from './components/RecommendationPanel'
 
-type Tab = 'search' | 'context'
+type Tab = 'search' | 'context' | 'recommend'
 
 export default function App() {
   const { session, loading, resetSession } = useSession()
@@ -19,17 +20,23 @@ export default function App() {
     return <div style={{ padding: '32px', textAlign: 'center' }}>세션 초기화 중...</div>
   }
 
+  const TAB_LABELS: Record<Tab, string> = {
+    search: '대학 검색',
+    context: 'Context',
+    recommend: 'AI 추천',
+  }
+
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif', fontSize: '14px' }}>
       {/* 좌측: 검색 + 지표 */}
       <div style={{ flex: 1, overflowY: 'auto', borderRight: '1px solid #ddd' }}>
         <div style={{ background: '#1a6fd4', color: '#fff', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontWeight: 700, fontSize: '16px' }}>대학알리미 추천시스템</span>
-          <span style={{ fontSize: '12px', opacity: 0.8 }}>Phase 1~2 데모</span>
+          <span style={{ fontSize: '12px', opacity: 0.8 }}>Phase 1~4</span>
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #ddd' }}>
-          {(['search', 'context'] as Tab[]).map(tab => (
+          {(['search', 'context', 'recommend'] as Tab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -43,7 +50,7 @@ export default function App() {
                 color: activeTab === tab ? '#1a6fd4' : '#666',
               }}
             >
-              {tab === 'search' ? '대학 검색' : 'Context Document'}
+              {TAB_LABELS[tab]}
             </button>
           ))}
         </div>
@@ -61,6 +68,15 @@ export default function App() {
 
         {activeTab === 'context' && (
           <SessionContextViewer contextDocument={contextDocument} />
+        )}
+
+        {activeTab === 'recommend' && (
+          <div style={{ padding: '16px' }}>
+            <RecommendationPanel
+              context={contextDocument}
+              sessionId={session.session_id}
+            />
+          </div>
         )}
       </div>
 
